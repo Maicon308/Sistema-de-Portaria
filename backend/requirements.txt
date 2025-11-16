@@ -1,4 +1,7 @@
-Django==5.0
-djangorestframework==3.14.0
-django-cors-headers==4.3.1
-python-dotenv==1.0.0
+Django==5.2.7: O framework web.
+
+djangorestframework: O framework que você usa para construir sua API REST.
+
+django-cors-headers: O pacote que corrigiu o erro de comunicação com o React.
+
+mysqlclient: O driver para conectar seu Django ao banco de dados MySQL
