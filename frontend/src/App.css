@@ -1,0 +1,156 @@
+.app {
+  min-height: 100vh;
+}
+
+.header {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  color: #667eea;
+  margin-bottom: 10px;
+}
+
+.header p {
+  color: #666;
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tabs button {
+  flex: 1;
+  min-width: 150px;
+  background: white;
+  color: #667eea;
+  font-weight: 600;
+  padding: 15px;
+}
+
+.tabs button.active {
+  background: #667eea;
+  color: white;
+}
+
+.content {
+  background: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.form-container h2,
+.list-container h2 {
+  color: #667eea;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: #333;
+  font-weight: 600;
+}
+
+.btn-primary {
+  background: #667eea;
+  color: white;
+  width: 100%;
+  padding: 15px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.btn-primary:hover {
+  background: #5568d3;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 10px;
+  border-left: 5px solid #667eea;
+}
+
+.card.ativo {
+  border-left-color: #28a745;
+  background: #f0fff4;
+}
+
+.card.finalizado {
+  border-left-color: #6c757d;
+  background: #f8f9fa;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.badge {
+  background: #667eea;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge {
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.status-badge.ativo,
+.status-badge:not(.finalizado) {
+  background: #28a745;
+  color: white;
+}
+
+.status-badge.finalizado {
+  background: #6c757d;
+  color: white;
+}
+
+.card h3 {
+  color: #333;
+  margin-bottom: 10px;
+  font-size: 18px;
+}
+
+.card p {
+  color: #666;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.empty-message {
+  text-align: center;
+  color: #999;
+  padding: 40px;
+  font-size: 16px;
+}
