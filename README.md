@@ -67,5 +67,4 @@ npm run dev
 - Data e horário de saída (automático)
 
 ## 👨‍💻 Desenvolvedor
-
-Maicon - [GitHub](https://github.com/Maicon308)
+ 
