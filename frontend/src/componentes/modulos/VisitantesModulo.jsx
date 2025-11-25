@@ -1,0 +1,306 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { API_BASE_URL } from '../../config';
+
+const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+        return format(new Date(dateString), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR });
+    } catch (e) {
+        return 'Formato Inválido';
+    }
+};
+
+// ============================================================================
+// COMPONENTE: ENTRADA DE VISITANTE
+// ============================================================================
+const EntradaVisitante = ({ porteiroMatricula, updateConsulta }) => {
+    const [formData, setFormData] = useState({
+        nome: '', documento: '', motivo: '', num_cracha: '',
+        setor_destino: '', autorizador: '',
+    });
+    
+    const [setores, setSetores] = useState([]);
+    const [autorizadores, setAutorizadores] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(null);
+
+    useEffect(() => {
+        const fetchDependencies = async () => {
+            try {
+                const [setoresRes, autorizadoresRes] = await Promise.all([
+                    axios.get(`${API_BASE_URL}/setores/`),
+                    axios.get(`${API_BASE_URL}/autorizadores/`)
+                ]);
+                setSetores(setoresRes.data);
+                setAutorizadores(autorizadoresRes.data);
+            } catch (err) {
+                setError("Falha ao carregar listas.");
+            }
+        };
+        fetchDependencies();
+    }, []);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        if (name === 'setor_destino') {
+            setFormData(prev => ({ ...prev, [name]: value, autorizador: '' }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
+        setError(null);
+        setSuccess(null);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+        setSuccess(null);
+
+        try {
+            const response = await axios.post(`${API_BASE_URL}/visitantes/`, {
+                ...formData,
+                porteiro: porteiroMatricula
+            });
+            
+            setSuccess(response.data.message || "✅ Visitante registrado!");
+            setFormData({
+                nome: '', documento: '', motivo: '', num_cracha: '',
+                setor_destino: '', autorizador: '',
+            });
+            updateConsulta();
+        } catch (err) {
+            const errorData = err.response?.data;
+            setError(errorData?.error || "❌ Erro ao registrar entrada.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="entrada-panel">
+            <div className="panel-header">
+                <h3 className="panel-title">📝 Registro de Entrada</h3>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="form-content">
+                <div className="form-field-group-2-cols">
+                    <div className="form-group">
+                        <label>Nome Completo *</label>
+                        <input type="text" name="nome" value={formData.nome} onChange={handleChange} required disabled={loading} placeholder="Ex: João da Silva" />
+                    </div>
+                    <div className="form-group">
+                        <label>RG ou CPF *</label>
+                        <input type="text" name="documento" value={formData.documento} onChange={handleChange} required disabled={loading} placeholder="Ex: 123.456.789-00" />
+                    </div>
+                </div>
+
+                <div className="form-group">
+                    <label>Número do Crachá *</label>
+                    <input type="text" name="num_cracha" value={formData.num_cracha} onChange={handleChange} required disabled={loading} placeholder="Ex: 123" />
+                </div>
+
+                <div className="form-field-group-2-cols">
+                    <div className="form-group">
+                        <label>Setor de Destino *</label>
+                        <select name="setor_destino" value={formData.setor_destino} onChange={handleChange} required disabled={loading}>
+                            <option value="">Selecione o Setor</option>
+                            {setores.map(setor => (
+                                <option key={setor.id} value={setor.id}>{setor.nome}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label>Pessoa que Autorizou *</label>
+                        <select 
+                            name="autorizador" 
+                            value={formData.autorizador} 
+                            onChange={handleChange} 
+                            required 
+                            disabled={loading || !formData.setor_destino}
+                            style={{ backgroundColor: !formData.setor_destino ? '#f5f5f5' : 'white' }}
+                        >
+                            <option value="">{!formData.setor_destino ? 'Primeiro selecione o setor' : 'Selecione o Autorizador'}</option>
+                            {formData.setor_destino && autorizadores
+                                .filter(a => a.setor === parseInt(formData.setor_destino))
+                                .map(autorizador => (
+                                    <option key={autorizador.id} value={autorizador.id}>{autorizador.nome}</option>
+                                ))}
+                        </select>
+                        {!formData.setor_destino && <small style={{ color: '#7f8c8d', fontSize: '0.85em' }}>ℹ️ Selecione um setor primeiro</small>}
+                    </div>
+                </div>
+
+                <div className="form-group">
+                    <label>Motivo da Visita</label>
+                    <textarea name="motivo" value={formData.motivo} onChange={handleChange} rows="3" disabled={loading} placeholder="Ex: Reunião com diretoria"></textarea>
+                </div>
+
+                {success && <p className="success-message">{success}</p>}
+                {error && <p className="error-message">{error}</p>}
+                
+                <button type="submit" className="btn-entrada" disabled={loading}>
+                    {loading ? "⏳ REGISTRANDO..." : "✅ REGISTRAR ENTRADA"}
+                </button>
+            </form>
+        </div>
+    );
+};
+
+// ============================================================================
+// COMPONENTE: SAÍDA DE VISITANTE
+// ============================================================================
+const SaidaVisitante = ({ updateConsulta }) => {
+    const [numCracha, setNumCracha] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(null);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError(null);
+        setSuccess(null);
+
+        try {
+            const response = await axios.post(`${API_BASE_URL}/visitantes/saida_por_cartao/`, { num_cracha: numCracha });
+            setSuccess(response.data.message || "✅ Saída registrada!");
+            setNumCracha('');
+            updateConsulta();
+        } catch (err) {
+            setError(err.response?.data?.error || "❌ Erro ao registrar saída.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="saida-panel">
+            <div className="panel-header">
+                <h3 className="panel-title">🚪 Registrar Saída</h3>
+            </div>
+            <p className="panel-subtitle">Informe o número do crachá para dar baixa:</p>
+            
+            <form onSubmit={handleSubmit} className="form-content form-saida-centralizado">
+                <div className="form-group">
+                    <label>Número do Crachá *</label>
+                    <input type="text" value={numCracha} onChange={(e) => setNumCracha(e.target.value)} required disabled={loading} placeholder="Ex: 123" autoFocus />
+                </div>
+
+                {success && <p className="success-message">{success}</p>}
+                {error && <p className="error-message">{error}</p>}
+                
+                <button type="submit" className="btn-saida" disabled={loading || !numCracha}>
+                    {loading ? "⏳ PROCESSANDO..." : "🚪 REGISTRAR SAÍDA"}
+                </button>
+            </form>
+        </div>
+    );
+};
+
+// ============================================================================
+// COMPONENTE: CONSULTA DE VISITANTES
+// ============================================================================
+const ConsultaVisitantes = ({ visitantes, updateConsulta, loading }) => {
+    return (
+        <div className="consulta-panel">
+            <div className="panel-header">
+                <h3 className="panel-title">👥 Visitantes Ativos</h3>
+                <button onClick={updateConsulta} className="btn-refresh" disabled={loading}>
+                    {loading ? "⏳ Carregando..." : "🔄 Atualizar"}
+                </button>
+            </div>
+            
+            {loading ? (
+                <p className="loading-message">⏳ Carregando...</p>
+            ) : visitantes.length === 0 ? (
+                <p className="no-data">✅ Nenhum visitante ativo no momento.</p>
+            ) : (
+                <div className="table-responsive">
+                    <table className="tabela-visitantes">
+                        <thead>
+                            <tr>
+                                <th>Crachá Nº</th>
+                                <th>Visitante</th>
+                                <th>Setor</th>
+                                <th>Autorizador</th>
+                                <th>Entrada</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {visitantes.map(v => (
+                                <tr key={v.id}>
+                                    <td data-label="Crachá Nº"><span className="cracha-numero">{v.num_cracha}</span></td>
+                                    <td data-label="Visitante"><strong>{v.nome}</strong><br/><small>{v.documento}</small></td>
+                                    <td data-label="Setor">{v.setor_destino_nome}</td>
+                                    <td data-label="Autorizador">{v.autorizador_nome}</td>
+                                    <td data-label="Entrada">{formatDate(v.data_hora_entrada)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============================================================================
+// COMPONENTE PRINCIPAL: MÓDULO VISITANTES
+// ============================================================================
+const VisitantesModulo = ({ porteiroMatricula }) => {
+    const [abaAtiva, setAbaAtiva] = useState('entrada');
+    const [visitantes, setVisitantes] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    const fetchVisitantes = useCallback(async () => {
+        setLoading(true);
+        try {
+            const response = await axios.get(`${API_BASE_URL}/visitantes/ativos/`);
+            setVisitantes(response.data);
+        } catch (error) {
+            console.error("Erro ao carregar visitantes:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (abaAtiva === 'consulta') {
+            fetchVisitantes();
+        }
+    }, [abaAtiva, fetchVisitantes]);
+
+    const renderAba = () => {
+        switch (abaAtiva) {
+            case 'entrada':
+                return <EntradaVisitante porteiroMatricula={porteiroMatricula} updateConsulta={fetchVisitantes} />;
+            case 'saida':
+                return <SaidaVisitante updateConsulta={fetchVisitantes} />;
+            case 'consulta':
+                return <ConsultaVisitantes visitantes={visitantes} updateConsulta={fetchVisitantes} loading={loading} />;
+            default:
+                return null;
+        }
+    };
+
+    return (
+        <div className="modulo-visitantes">
+            <div className="abas-container">
+                <button className={`aba-btn ${abaAtiva === 'entrada' ? 'active' : ''}`} onClick={() => setAbaAtiva('entrada')}>📝 ENTRADA</button>
+                <button className={`aba-btn ${abaAtiva === 'saida' ? 'active' : ''}`} onClick={() => setAbaAtiva('saida')}>🚪 SAÍDA</button>
+                <button className={`aba-btn ${abaAtiva === 'consulta' ? 'active' : ''}`} onClick={() => setAbaAtiva('consulta')}>👥 CONSULTA</button>
+            </div>
+
+            <div className="conteudo-aba">
+                {renderAba()}
+            </div>
+        </div>
+    );
+};
+
+export default VisitantesModulo;
